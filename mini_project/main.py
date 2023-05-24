@@ -1,7 +1,7 @@
 import cv2
-# from julia.api import Julia
+from julia.api import Julia
 
-# jl = Julia(compiled_modules=False)
+jl = Julia(compiled_modules=False)
 from dpmmpythonStreaming.dpmmwrapper import DPMMPython
 from dpmmpythonStreaming.priors import niw
 import numpy as np
@@ -9,7 +9,8 @@ import cv2 as cv
 
 
 # code from git- example how to use DPMM
-# data, gt = DPMMPython.generate_gaussian_data(10000, 2, 10, 100.0)
+#data, gt = DPMMPython.generate_gaussian_data(10000, 2, 10, 100.0)
+
 # batch1 = data[:, 0:5000]
 # batch2 = data[:, 5000:]
 # prior = DPMMPython.create_prior(2, 0, 1, 1, 1)
@@ -49,24 +50,52 @@ def make_mask():
 	mask1 = np.zeros(img.shape[:2], np.uint8)
 	mask1[220:330, 150:250] = 255
 
+	mask2 = cv2.bitwise_and(mask1, mask, mask=mask1)
 	masked_img = cv2.bitwise_and(img, result, mask=mask1)
 
-	cv2.imshow('Mask1', mask1)
-	cv2.waitKey(0)
-	cv2.imshow('Mask', mask)
-	cv2.waitKey(0)
-	cv2.imshow('Masked Image', result)
-	cv2.waitKey(0)
-	cv2.imshow('Masked Image Final', masked_img)
-	cv2.waitKey(0)
+	#cv2.imshow('Mask2', mask2)
+	#cv2.waitKey(0)
+	opposite_mask = cv2.bitwise_not(mask2)
+	opposite_mask_img = cv2.bitwise_and(img, img, mask=opposite_mask)
+	# cv2.imshow('Opposite Mask2', opposite_mask)
+	# cv2.waitKey(0)
+	# cv2.imshow('Opposite Mask on img',opposite_mask_img)
+	# cv2.waitKey(0)
+	cv2.imwrite('Opposite_Mask_on_img.jpg',opposite_mask_img)
+	# cv2.imshow('Mask1', mask1)
+	# cv2.waitKey(0)
+	# cv2.imshow('Mask', mask)
+	# cv2.waitKey(0)
+	# cv2.imshow('Masked Image', result)
+	# cv2.waitKey(0)
+	# cv2.imshow('Masked Image Final', masked_img)
+	# cv2.waitKey(0)
 
 	cv2.imwrite('Mask_on_balloon.jpg', masked_img)
+	return masked_img, opposite_mask_img
 
 
-def jjjj():
+def cluster_first_frame():
+	img = cv2.imread('firstframe.png')
+	object_masked_img, background_masked_img = make_mask()
+	masked_img_data = np.array(object_masked_img)
+	rows, cols, rgb = masked_img_data.shape
+	x = masked_img_data.reshape(rows * cols, rgb)
+	prior = DPMMPython.create_prior(2, 0, 1, 1, 1)
+	batch1 = x[:, 0:5000]
+	model = DPMMPython.fit_init(batch1, 10.0, prior=prior, iterations= 10, burnout=5)
+	labels = DPMMPython.get_labels(model)
+	print(labels)
+
+
+
+
+
+
+	# def jjjj():
 	# Create a VideoCapture object and read from input file
 	# If the input is the camera, pass 0 instead of the video file name
-	cap = cv2.VideoCapture('video.mp4')
+	#cap = cv2.VideoCapture('video.mp4')
 
 
 # Check if camera opened successfully
@@ -96,6 +125,6 @@ def jjjj():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-	make_mask()
+	cluster_first_frame()
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
